@@ -52,12 +52,12 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
           };
           // postUpdatedArray.push(post);
 
-          postsPagination.results.push(post);
-          postsPagination.next_page = data.next_page;
+          postUpdatedArray.push(post);
 
           // eslint-disable-next-line no-useless-return
           return;
         });
+
         setPosts({
           next_page: data.next_page,
           results: [...postUpdatedArray],
@@ -75,7 +75,7 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
           <div>
             <img src="/images/logo.svg" alt="logo" />
           </div>
-          {postsPagination.results.map(post => (
+          {posts.results.map(post => (
             <div className={styles.postLink} key={post.uid}>
               <Link href={`/post/${post.uid}`}>
                 <a>
@@ -99,12 +99,12 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
               </Link>
             </div>
           ))}
-          {postsPagination.next_page ? (
+          {posts.next_page ? (
             <button
               className={styles.loadButton}
               type="button"
               onClick={() => handleLoadMorePosts()}
-              disabled={postsPagination.next_page === null}
+              disabled={posts.next_page === null}
             >
               Carregar mais posts{' '}
             </button>

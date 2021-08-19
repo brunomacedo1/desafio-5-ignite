@@ -1,4 +1,4 @@
-import { GetStaticPaths, GetStaticProps } from 'next';
+import next, { GetStaticPaths, GetStaticProps } from 'next';
 import Prismic from '@prismicio/client';
 import { RichText } from 'prismic-dom';
 import { format } from 'date-fns';
@@ -6,13 +6,16 @@ import ptBR from 'date-fns/locale/pt-BR';
 
 import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
 import Header from '../../components/Header';
+import Comments from '../../components/Comments';
 
 interface Post {
+  uid?: string;
   first_publication_date: string | null;
   data: {
     title: string;
@@ -31,11 +34,24 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  next_previous: {
+    uid: string;
+    title: string;
+  }[];
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
-  const router = useRouter();
+export default function Post({ post, next_previous }: PostProps): JSX.Element {
+  function getIndex(): number {
+    if (next_previous) {
+      const index = next_previous.findIndex(result => result.uid === post.uid);
+      return index;
+    }
+    return null;
+  }
 
+  const index = getIndex();
+  console.log(next_previous?.length);
+  const router = useRouter();
   if (router.isFallback) {
     return <div>Carregando...</div>;
   }
@@ -90,6 +106,49 @@ export default function Post({ post }: PostProps): JSX.Element {
               </div>
             );
           })}
+          <div className={styles.divider} />
+        </div>
+
+        <div className={styles.postComments}>
+          <div className={styles.buttonsContainer}>
+            <div>
+              {index !== 0 ? (
+                <>
+                  <p>{next_previous[index - 1].title}</p>
+                  <Link href={`${next_previous[index - 1].uid}`}>
+                    <a>Próximo post</a>
+                  </Link>
+                  )
+                </>
+              ) : (
+                <>
+                  <Link href="/">
+                    <a>Home</a>
+                  </Link>
+                  )
+                </>
+              )}
+            </div>
+            <div>
+              {index !== next_previous.length - 1 ? (
+                <>
+                  <p>{next_previous[index + 1].title}</p>
+                  <Link href={`${next_previous[index + 1].uid}`}>
+                    <a>Próximo post</a>
+                  </Link>
+                  )
+                </>
+              ) : (
+                <>
+                  <Link href="/">
+                    <a>Home</a>
+                  </Link>
+                  )
+                </>
+              )}
+            </div>
+          </div>
+          <Comments />
         </div>
       </main>
     </>
@@ -119,6 +178,16 @@ export const getStaticProps: GetStaticProps = async context => {
   const prismic = getPrismicClient();
   const { slug } = context.params;
   const response = await prismic.getByUID('post', String(slug), {});
+  const response_for_slugs = await prismic.query(
+    Prismic.Predicates.at('document.type', 'post')
+  );
+
+  const next_previous = response_for_slugs.results.map(result => {
+    return {
+      uid: result.uid,
+      title: result.data.title,
+    };
+  });
 
   const post = {
     uid: response.uid,
@@ -142,6 +211,7 @@ export const getStaticProps: GetStaticProps = async context => {
   return {
     props: {
       post,
+      next_previous,
     },
     revalidate: 60 * 60,
   };
